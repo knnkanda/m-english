@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>マサソンイングリッシュ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* Layout concept: four vertical lanes (S / V / O・C / M) inside a dark arcade
+     cabinet frame. A single word-chunk falls down the lanes; dropping it in
+     its grammatical lane locks it into the sentence being built left-to-right. */
+  :root{
+    --bg:#0a0e1a;
+    --surface:#121a2e;
+    --surface-2:#1a2340;
+    --fg:#eef2ff;
+    --muted:#8d96b8;
+    --gold:#f2c14e;
+    --lane-s:#4fd1ff;
+    --lane-v:#ff5d7a;
+    --lane-oc:#4fe0a0;
+    --lane-m:#c9a0ff;
+    --danger:#ff5d7a;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:'Noto Sans JP',system-ui,sans-serif;
+    min-height:100%;
+    padding-left:max(16px, env(safe-area-inset-left,0px));
+    padding-right:max(16px, env(safe-area-inset-right,0px));
+  }
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  button{font-family:inherit;}
+  .pixel{font-family:'Press Start 2P',monospace;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  .app{
+    max-width:640px;
+    margin:0 auto;
+    padding-block:18px 28px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    border-bottom:2px solid var(--surface-2);
+    padding-bottom:12px;
+  }
+  header h1{
+    font-size:14px;
+    line-height:1.6;
+    color:var(--gold);
+    letter-spacing:0.5px;
+  }
+  .hud{
+    display:flex;
+    gap:14px;
+    font-size:11px;
+    color:var(--muted);
+  }
+  .hud b{
+    display:block;
+    color:var(--fg);
+    font-size:15px;
+    margin-top:2px;
+  }
+  .hud span{text-align:center;}
+
+  /* ---- overlays ---- */
+  .overlay{
+    background:var(--surface);
+    border:1px solid var(--surface-2);
+    border-radius:14px;
+    padding:22px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    animation:fadeIn .35s ease;
+  }
+  @keyframes fadeIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)}}
+  .overlay h2{font-size:13px; color:var(--gold); line-height:1.7;}
+  .overlay p{margin:0; font-size:14.5px; line-height:1.9; color:var(--fg);}
+  .overlay .sub{color:var(--muted); font-size:13px;}
+  .rule-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--surface-2);
+    border-radius:8px;
+    padding:9px 12px;
+    font-size:13px;
+  }
+  .chip{
+    font-size:11px;
+    font-weight:700;
+    padding:3px 9px;
+    border-radius:5px;
+    color:#0a0e1a;
+    flex:none;
+  }
+  .chip.s{background:var(--lane-s)}
+  .chip.v{background:var(--lane-v)}
+  .chip.oc{background:var(--lane-oc)}
+  .chip.m{background:var(--lane-m)}
+
+  .btn{
+    appearance:none;
+    border:none;
+    border-radius:9px;
+    padding:13px 18px;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    background:var(--gold);
+    color:#1a1203;
+    transition:transform .12s ease, filter .12s ease;
+  }
+  .btn:active{transform:scale(.96); filter:brightness(.92);}
+  .btn.ghost{
+    background:transparent;
+    border:1px solid var(--surface-2);
+    color:var(--fg);
+  }
+
+  .result-sentence{
+    font-family:'JetBrains Mono',monospace;
+    font-size:16px;
+    line-height:1.6;
+    background:var(--surface-2);
+    border-radius:10px;
+    padding:14px;
+  }
+  .result-sentence .ja{
+    font-family:'Noto Sans JP',sans-serif;
+    font-size:13.5px;
+    color:var(--muted);
+    margin-top:6px;
+    display:block;
+  }
+  .result-tags{display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;}
+
+  /* ---- game ---- */
+  #gameWrap{display:flex; flex-direction:column; gap:10px;}
+  .progress{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .progress b{color:var(--fg); font-size:13px;}
+
+  #gameArea{
+    position:relative;
+    display:flex;
+    height:min(52vh, 380px);
+    min-height:280px;
+    background:
+      linear-gradient(var(--surface-2) 1px, transparent 1px) 0 0/100% 34px,
+      var(--surface);
+    border:1px solid var(--surface-2);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .lane{
+    flex:1 1 0;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    border-right:1px solid rgba(255,255,255,.05);
+    position:relative;
+  }
+  .lane:last-child{border-right:none;}
+  .lane-head{
+    flex:none;
+    text-align:center;
+    font-size:11px;
+    font-weight:700;
+    padding:7px 2px;
+    color:#0a0e1a;
+    letter-spacing:.5px;
+  }
+  .lane[data-role="S"] .lane-head{background:var(--lane-s);}
+  .lane[data-role="V"] .lane-head{background:var(--lane-v);}
+  .lane[data-role="OC"] .lane-head{background:var(--lane-oc);}
+  .lane[data-role="M"] .lane-head{background:var(--lane-m);}
+  .lane-track{
+    flex:1;
+    position:relative;
+  }
+  .lane.active-target .lane-track{
+    background:rgba(255,255,255,.05);
+  }
+  .lane-slot{
+    flex:none;
+    min-height:46px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    font-size:11px;
+    line-height:1.3;
+    padding:4px 3px;
+    color:var(--muted);
+    border-top:1px dashed var(--surface-2);
+    word-break:break-word;
+  }
+  .lane-slot.filled{
+    color:var(--fg);
+    font-weight:700;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .lane[data-role="S"] .lane-slot.filled{background:color-mix(in srgb, var(--lane-s) 22%, transparent);}
+  .lane[data-role="V"] .lane-slot.filled{background:color-mix(in srgb, var(--lane-v) 22%, transparent);}
+  .lane[data-role="OC"] .lane-slot.filled{background:color-mix(in srgb, var(--lane-oc) 22%, transparent);}
+  .lane[data-role="M"] .lane-slot.filled{background:color-mix(in srgb, var(--lane-m) 22%, transparent);}
+
+  .chunk-block{
+    position:absolute;
+    top:0;
+    width:23%;
+    margin-left:1%;
+    min-height:44px;
+    border-radius:8px;
+    background:var(--surface-2);
+    border:1px solid var(--gold);
+    color:var(--fg);
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:4px 6px;
+    line-height:1.25;
+    box-shadow:0 4px 14px rgba(0,0,0,.4);
+    z-index:5;
+  }
+  .chunk-block.bad{
+    border-color:var(--danger);
+    animation:shake .3s ease;
+  }
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-5px)}
+    75%{transform:translateX(5px)}
+  }
+
+  .controls{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+  }
+  .controls button{
+    width:56px;
+    height:56px;
+    border-radius:50%;
+    border:1px solid var(--surface-2);
+    background:var(--surface);
+    color:var(--gold);
+    font-size:20px;
+    cursor:pointer;
+  }
+  .controls button:active{background:var(--surface-2);}
+  .controls .hint{
+    font-size:11px;
+    color:var(--muted);
+    text-align:center;
+    max-width:180px;
+  }
+
+  /* ---- fx: combo / level-up ---- */
+  .hud b.bump{ animation:comboBump .35s ease; }
+  @keyframes comboBump{
+    0%{ transform:scale(1); }
+    40%{ transform:scale(1.4); color:var(--gold); }
+    100%{ transform:scale(1); }
+  }
+
+  .sound-toggle{
+    appearance:none;
+    border:1px solid var(--surface-2);
+    background:var(--surface);
+    color:var(--muted);
+    font-size:11px;
+    font-weight:700;
+    border-radius:7px;
+    padding:6px 10px;
+    cursor:pointer;
+    flex:none;
+  }
+  .sound-toggle.off{ color:var(--danger); border-color:var(--danger); }
+
+  #flashOverlay{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:9997;
+    background:var(--flash-color, transparent);
+    opacity:0;
+  }
+  #flashOverlay.flash-active{ animation:flashPulse .32s ease-out; }
+  @keyframes flashPulse{
+    0%{ opacity:1; }
+    100%{ opacity:0; }
+  }
+
+  #fxLayer{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    overflow:hidden;
+    z-index:9999;
+  }
+  .confetti-piece{
+    position:absolute;
+    width:7px;
+    height:11px;
+    animation-name:confettiFall;
+    animation-timing-function:ease-out;
+    animation-fill-mode:forwards;
+  }
+  @keyframes confettiFall{
+    0%{ transform:translate(0,0) rotate(0deg); opacity:1; }
+    100%{ transform:translate(var(--x1),var(--y1)) rotate(var(--rot)); opacity:0; }
+  }
+
+  .combo-popup{
+    position:absolute;
+    left:50%;
+    top:38%;
+    transform:translate(-50%,-50%) scale(.4);
+    font-family:'Press Start 2P',monospace;
+    font-size:18px;
+    color:var(--gold);
+    text-shadow:0 0 14px rgba(242,193,78,.85);
+    white-space:nowrap;
+    animation:comboPop .65s cubic-bezier(.2,1.5,.4,1) forwards;
+  }
+  .combo-popup.mega{
+    font-size:24px;
+    color:#fff;
+    text-shadow:0 0 16px var(--gold), 0 0 28px var(--lane-oc);
+  }
+  @keyframes comboPop{
+    0%{ transform:translate(-50%,-50%) scale(.4); opacity:0; }
+    30%{ transform:translate(-50%,-50%) scale(1.18); opacity:1; }
+    70%{ transform:translate(-50%,-58%) scale(1); opacity:1; }
+    100%{ transform:translate(-50%,-78%) scale(.92); opacity:0; }
+  }
+
+  .lane.pulse .lane-head{ animation:lanePulse .45s ease; }
+  @keyframes lanePulse{
+    0%{ filter:brightness(1); box-shadow:none; }
+    35%{ filter:brightness(1.5); box-shadow:0 0 18px 2px rgba(255,255,255,.55); }
+    100%{ filter:brightness(1); box-shadow:none; }
+  }
+
+  .bounce-in{ animation:bounceIn .5s cubic-bezier(.2,1.7,.4,1); }
+  @keyframes bounceIn{
+    0%{ transform:scale(.5); opacity:0; }
+    60%{ transform:scale(1.12); opacity:1; }
+    100%{ transform:scale(1); opacity:1; }
+  }
+
+  [hidden]{display:none!important;}
+
+  @media (max-width:420px){
+    .lane-head{font-size:9.5px;}
+    .lane-slot{font-size:9.5px; min-height:40px;}
+    .chunk-block{font-size:10.5px;}
+  }
+</style>
+</head>
+<body>
+<div id="flashOverlay"></div>
+<div class="app">
+
+  <header>
+    <h1 class="pixel">マサソン<br>イングリッシュ</h1>
+    <div class="hud">
+      <span>SCORE<b id="score" class="mono">0</b></span>
+      <span>LV<b id="level" class="mono">1</b></span>
+      <span>COMBO<b id="combo" class="mono">0</b></span>
+    </div>
+    <button id="soundToggle" class="sound-toggle" type="button">♪ ON</button>
+  </header>
+
+  <div id="intro" class="overlay">
+    <h2 class="pixel">HOW TO PLAY</h2>
+    <p>英語は主語(S)・動詞(V)・目的語や補語(O・C)・修飾語(M)の「置く順番」が決まっています。孫正義さんのスピーチも、この骨組みを短く言い切ってから具体化していくのが特徴です。</p>
+    <p>上から落ちてくる英単語のカタマリを、正しいレーンでキャッチして文を組み立てましょう。</p>
+    <div class="rule-row"><span class="chip s">S</span>主語 — 誰が / 何が</div>
+    <div class="rule-row"><span class="chip v">V</span>動詞 — どうする / どうだ</div>
+    <div class="rule-row"><span class="chip oc">O・C</span>目的語 or 補語 — 何を / 何だ</div>
+    <div class="rule-row"><span class="chip m">M</span>修飾語 — 場所・時・理由など後付け</div>
+    <p class="sub">左右キー（または下のボタン・タップ）でレーンを選び、正しい位置に落とすだけ。間違えても減点だけなので気楽にどうぞ。</p>
+    <button class="btn" id="startBtn">スタート ▶</button>
+  </div>
+
+  <div id="levelClear" class="overlay" hidden>
+    <h2 class="pixel" id="levelClearTitle">LEVEL CLEAR</h2>
+    <p id="levelClearText"></p>
+    <button class="btn" id="levelNextBtn">次のレベルへ ▶</button>
+  </div>
+
+  <div id="sentenceClear" class="overlay" hidden>
+    <h2 class="pixel" id="completeTitle">COMPLETE!</h2>
+    <div class="result-sentence">
+      <span id="resultEn"></span>
+      <span class="ja" id="resultJa"></span>
+      <div class="result-tags" id="resultTags"></div>
+    </div>
+    <button class="btn" id="nextBtn">次の文へ ▶</button>
+  </div>
+
+  <div id="finalScreen" class="overlay" hidden>
+    <h2 class="pixel" id="allClearTitle">ALL CLEAR!</h2>
+    <p>全<span id="finalTotal"></span>文、お疲れさまでした。</p>
+    <p>最終スコア: <b id="finalScore" class="mono"></b> / 正答率: <b id="finalAccuracy" class="mono"></b></p>
+    <p class="sub">S → V → O・C → M。この順番で骨組みを言い切ってから詳細を足す。これが孫正義さん流の「伝わる英語」の型です。</p>
+    <button class="btn" id="restartBtn">もう一度プレイ ▶</button>
+  </div>
+
+  <main id="gameWrap" hidden>
+    <div class="progress">
+      <span>文 <b><span id="sentNum">1</span> / <span id="sentTotal">14</span></b></span>
+      <span>LEVEL <b id="progLevel">1</b></span>
+    </div>
+    <div id="gameArea">
+      <div class="lane" data-role="S"><div class="lane-head">S</div><div class="lane-track"></div><div class="lane-slot" data-slot="S">主語</div></div>
+      <div class="lane" data-role="V"><div class="lane-head">V</div><div class="lane-track"></div><div class="lane-slot" data-slot="V">動詞</div></div>
+      <div class="lane" data-role="OC"><div class="lane-head">O・C</div><div class="lane-track"></div><div class="lane-slot" data-slot="OC">目的語/補語</div></div>
+      <div class="lane" data-role="M"><div class="lane-head">M</div><div class="lane-track"></div><div class="lane-slot" data-slot="M">修飾語</div></div>
+      <div id="fallingBlock" class="chunk-block" hidden></div>
+    </div>
+    <div class="controls">
+      <button id="btnLeft" aria-label="左へ">◀</button>
+      <div class="hint">←→キー・ボタン・タップでレーン移動</div>
+      <button id="btnRight" aria-label="右へ">▶</button>
+    </div>
+  </main>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var ROLES = ["S","V","OC","M"];
+
+  var SENTENCES = [
+    // Level 1: S + V
+    {en:"AI is accelerating.", ja:"AIは加速している。", chunks:[{t:"AI",r:"S"},{t:"is accelerating",r:"V"}]},
+    {en:"The market is growing.", ja:"市場は成長している。", chunks:[{t:"The market",r:"S"},{t:"is growing",r:"V"}]},
+    {en:"Robots are learning.", ja:"ロボットは学習している。", chunks:[{t:"Robots",r:"S"},{t:"are learning",r:"V"}]},
+    {en:"Our team is moving.", ja:"私たちのチームは動いている。", chunks:[{t:"Our team",r:"S"},{t:"is moving",r:"V"}]},
+    {en:"The paradigm is shifting.", ja:"パラダイムが変化している。", chunks:[{t:"The paradigm",r:"S"},{t:"is shifting",r:"V"}]},
+    {en:"Everything is connected.", ja:"すべてがつながっている。", chunks:[{t:"Everything",r:"S"},{t:"is connected",r:"V"}]},
+    {en:"The singularity is approaching.", ja:"シンギュラリティが近づいている。", chunks:[{t:"The singularity",r:"S"},{t:"is approaching",r:"V"}]},
+    {en:"The revolution has begun.", ja:"革命は始まった。", chunks:[{t:"The revolution",r:"S"},{t:"has begun",r:"V"}]},
+    // Level 2: S + V + O/C
+    {en:"I have a dream.", ja:"私には夢がある。", chunks:[{t:"I",r:"S"},{t:"have",r:"V"},{t:"a dream",r:"OC"}]},
+    {en:"We need innovation.", ja:"私たちには革新が必要だ。", chunks:[{t:"We",r:"S"},{t:"need",r:"V"},{t:"innovation",r:"OC"}]},
+    {en:"AI will change everything.", ja:"AIはすべてを変えるだろう。", chunks:[{t:"AI",r:"S"},{t:"will change",r:"V"},{t:"everything",r:"OC"}]},
+    {en:"This is our strategy.", ja:"これが私たちの戦略だ。", chunks:[{t:"This",r:"S"},{t:"is",r:"V"},{t:"our strategy",r:"OC"}]},
+    {en:"The future belongs to AI.", ja:"未来はAIのものだ。", chunks:[{t:"The future",r:"S"},{t:"belongs",r:"V"},{t:"to AI",r:"OC"}]},
+    {en:"Results are proportionate to dreams.", ja:"結果は夢の大きさに比例する。", chunks:[{t:"Results",r:"S"},{t:"are",r:"V"},{t:"proportionate to dreams",r:"OC"}]},
+    {en:"We build the future.", ja:"私たちは未来を築く。", chunks:[{t:"We",r:"S"},{t:"build",r:"V"},{t:"the future",r:"OC"}]},
+    {en:"Information changes everything.", ja:"情報がすべてを変える。", chunks:[{t:"Information",r:"S"},{t:"changes",r:"V"},{t:"everything",r:"OC"}]},
+    {en:"Speed is our strategy.", ja:"スピードが私たちの戦略だ。", chunks:[{t:"Speed",r:"S"},{t:"is",r:"V"},{t:"our strategy",r:"OC"}]},
+    {en:"I trust my instinct.", ja:"私は自分の直感を信じる。", chunks:[{t:"I",r:"S"},{t:"trust",r:"V"},{t:"my instinct",r:"OC"}]},
+    {en:"We chase big dreams.", ja:"私たちは大きな夢を追いかける。", chunks:[{t:"We",r:"S"},{t:"chase",r:"V"},{t:"big dreams",r:"OC"}]},
+    {en:"AI will surpass humans.", ja:"AIは人間を超えるだろう。", chunks:[{t:"AI",r:"S"},{t:"will surpass",r:"V"},{t:"humans",r:"OC"}]},
+    {en:"Our mission is clear.", ja:"私たちの使命は明確だ。", chunks:[{t:"Our mission",r:"S"},{t:"is",r:"V"},{t:"clear",r:"OC"}]},
+    {en:"We need bold decisions.", ja:"私たちには大胆な決断が必要だ。", chunks:[{t:"We",r:"S"},{t:"need",r:"V"},{t:"bold decisions",r:"OC"}]},
+    // Level 3: S + V + O/C + M
+    {en:"We have robotics companies in our portfolio.", ja:"私たちはポートフォリオにロボット企業を持っている。", chunks:[{t:"We",r:"S"},{t:"have",r:"V"},{t:"robotics companies",r:"OC"},{t:"in our portfolio",r:"M"}]},
+    {en:"AI will create new jobs in every industry.", ja:"AIはあらゆる産業で新しい仕事を生み出すだろう。", chunks:[{t:"AI",r:"S"},{t:"will create",r:"V"},{t:"new jobs",r:"OC"},{t:"in every industry",r:"M"}]},
+    {en:"I started this company thirty years ago.", ja:"私はこの会社を30年前に始めた。", chunks:[{t:"I",r:"S"},{t:"started",r:"V"},{t:"this company",r:"OC"},{t:"thirty years ago",r:"M"}]},
+    {en:"We are building a platform for everyone.", ja:"私たちはみんなのためのプラットフォームを作っている。", chunks:[{t:"We",r:"S"},{t:"are building",r:"V"},{t:"a platform",r:"OC"},{t:"for everyone",r:"M"}]},
+    {en:"I started SoftBank with one idea.", ja:"私はたった一つのアイデアでソフトバンクを始めた。", chunks:[{t:"I",r:"S"},{t:"started",r:"V"},{t:"SoftBank",r:"OC"},{t:"with one idea",r:"M"}]},
+    {en:"We are creating value for society.", ja:"私たちは社会のために価値を生み出している。", chunks:[{t:"We",r:"S"},{t:"are creating",r:"V"},{t:"value",r:"OC"},{t:"for society",r:"M"}]},
+    {en:"AI will transform every business in the world.", ja:"AIは世界中のあらゆるビジネスを変革するだろう。", chunks:[{t:"AI",r:"S"},{t:"will transform",r:"V"},{t:"every business",r:"OC"},{t:"in the world",r:"M"}]},
+    {en:"I made this decision in a single night.", ja:"私はその決断を一晩で下した。", chunks:[{t:"I",r:"S"},{t:"made",r:"V"},{t:"this decision",r:"OC"},{t:"in a single night",r:"M"}]},
+    {en:"Our fund supports founders around the world.", ja:"私たちのファンドは世界中の起業家を支援する。", chunks:[{t:"Our fund",r:"S"},{t:"supports",r:"V"},{t:"founders",r:"OC"},{t:"around the world",r:"M"}]},
+    {en:"I see opportunity in every crisis.", ja:"私はあらゆる危機にチャンスを見出す。", chunks:[{t:"I",r:"S"},{t:"see",r:"V"},{t:"opportunity",r:"OC"},{t:"in every crisis",r:"M"}]}
+  ];
+
+  var LEVEL_INTRO = {
+    1:{title:"LEVEL 1 — S + V", text:"まずは骨組みだけ。「誰が」「どうする」の2語でも文は完成します。S(青)→V(赤)の順にキャッチしましょう。"},
+    2:{title:"LEVEL 2 — S + V + O・C", text:"骨組みに「何を/何だ」を足します。O・C(緑)はSVの直後。動詞によってOかCかは決まりますが、レーンは共通です。"},
+    3:{title:"LEVEL 3 — + M (修飾語)", text:"最後に場所・時・理由などの「後付け」情報をM(紫)として一番後ろに足します。骨組み→詳細、の順番は崩しません。"}
+  };
+
+  function levelForChunkCount(n){ return n<=2 ? 1 : (n===3 ? 2 : 3); }
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var tmp=a[i]; a[i]=a[j]; a[j]=tmp;
+    }
+    return a;
+  }
+
+  // ---- state ----
+  var state = {
+    sentenceIndex:0,
+    score:0,
+    combo:0,
+    attempts:0,
+    correct:0,
+    currentLevel:1,
+    queue:[],          // remaining chunks to drop for current sentence
+    placed:{},         // role -> text, for current sentence
+    laneIndex:1,
+    y:0,
+    speed:70,
+    blockH:44,
+    running:false,
+    lastTs:null,
+    shownLevelIntro:{}
+  };
+
+  // ---- dom ----
+  var $ = function(id){ return document.getElementById(id); };
+  var scoreEl=$("score"), levelEl=$("level"), comboEl=$("combo");
+  var introEl=$("intro"), startBtn=$("startBtn");
+  var levelClearEl=$("levelClear"), levelClearTitle=$("levelClearTitle"), levelClearText=$("levelClearText"), levelNextBtn=$("levelNextBtn");
+  var sentenceClearEl=$("sentenceClear"), resultEn=$("resultEn"), resultJa=$("resultJa"), resultTags=$("resultTags"), nextBtn=$("nextBtn");
+  var finalEl=$("finalScreen"), finalTotal=$("finalTotal"), finalScore=$("finalScore"), finalAccuracy=$("finalAccuracy"), restartBtn=$("restartBtn");
+  var gameWrap=$("gameWrap"), gameArea=$("gameArea"), fallingBlock=$("fallingBlock");
+  var sentNum=$("sentNum"), sentTotal=$("sentTotal"), progLevel=$("progLevel");
+  var btnLeft=$("btnLeft"), btnRight=$("btnRight");
+  var lanes = Array.prototype.slice.call(document.querySelectorAll(".lane"));
+  var slots = {};
+  ROLES.forEach(function(r){ slots[r] = document.querySelector('.lane-slot[data-slot="'+r+'"]'); });
+  var completeTitle = $("completeTitle"), allClearTitle = $("allClearTitle");
+  var soundToggle = $("soundToggle"), flashOverlay = $("flashOverlay");
+
+  // ---- fx layer (confetti / combo popups) ----
+  var fxLayer = document.createElement("div");
+  fxLayer.id = "fxLayer";
+  document.body.appendChild(fxLayer);
+
+  var LANE_COLORS = {S:"#4fd1ff", V:"#ff5d7a", OC:"#4fe0a0", M:"#c9a0ff"};
+  var CONFETTI_PALETTE = ["#4fd1ff","#ff5d7a","#4fe0a0","#c9a0ff","#f2c14e"];
+
+  function spawnConfetti(x, y, count, colors){
+    colors = colors || CONFETTI_PALETTE;
+    for(var i=0;i<count;i++){
+      var el = document.createElement("div");
+      el.className = "confetti-piece";
+      var angle = Math.random()*Math.PI*2;
+      var dist = 50 + Math.random()*130;
+      var dx = Math.cos(angle)*dist;
+      var dy = Math.sin(angle)*dist*0.6 + 90 + Math.random()*60;
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+      el.style.background = colors[Math.floor(Math.random()*colors.length)];
+      if(Math.random()<0.5) el.style.borderRadius = "50%";
+      el.style.setProperty("--x1", dx.toFixed(1)+"px");
+      el.style.setProperty("--y1", dy.toFixed(1)+"px");
+      el.style.setProperty("--rot", (Math.random()*720-360).toFixed(0)+"deg");
+      el.style.animationDuration = (650 + Math.random()*500).toFixed(0)+"ms";
+      fxLayer.appendChild(el);
+      el.addEventListener("animationend", function(){ this.remove(); });
+    }
+  }
+
+  function showComboPopup(n){
+    var el = document.createElement("div");
+    el.className = "combo-popup" + (n % 5 === 0 ? " mega" : "");
+    el.textContent = "COMBO ×" + n;
+    fxLayer.appendChild(el);
+    el.addEventListener("animationend", function(){ this.remove(); });
+  }
+
+  function flashScreen(color){
+    flashOverlay.style.setProperty("--flash-color", color);
+    flashOverlay.classList.remove("flash-active");
+    void flashOverlay.offsetWidth;
+    flashOverlay.classList.add("flash-active");
+  }
+
+  function bounceEl(el){
+    if(!el) return;
+    el.classList.remove("bounce-in");
+    void el.offsetWidth;
+    el.classList.add("bounce-in");
+  }
+
+  function pulseLane(role){
+    var lane = document.querySelector('.lane[data-role="'+role+'"]');
+    if(!lane) return;
+    lane.classList.remove("pulse");
+    void lane.offsetWidth;
+    lane.classList.add("pulse");
+  }
+
+  function bumpCombo(){
+    comboEl.classList.remove("bump");
+    void comboEl.offsetWidth;
+    comboEl.classList.add("bump");
+  }
+
+  // ---- sound (synthesized with Web Audio API, no external assets) ----
+  var audioCtx = null;
+  var soundOn = true;
+  try{
+    var savedSound = localStorage.getItem("masason_sound");
+    if(savedSound !== null) soundOn = savedSound === "1";
+  }catch(e){}
+
+  function ensureAudioCtx(){
+    try{
+      if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+      if(audioCtx.state === "suspended"){ audioCtx.resume(); }
+    }catch(e){}
+  }
+
+  function tone(freq, time, dur, type, peakGain){
+    if(!soundOn || !audioCtx) return;
+    try{
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, time);
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(peakGain||0.18, time+0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time+dur);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(time);
+      osc.stop(time+dur+0.03);
+    }catch(e){}
+  }
+
+  function sfxClick(){
+    ensureAudioCtx();
+    if(!audioCtx) return;
+    tone(320, audioCtx.currentTime, 0.05, "square", 0.09);
+  }
+  function sfxMoveTick(){
+    ensureAudioCtx();
+    if(!audioCtx) return;
+    tone(260, audioCtx.currentTime, 0.035, "square", 0.05);
+  }
+  function sfxCatch(combo){
+    ensureAudioCtx();
+    if(!audioCtx) return;
+    var t = audioCtx.currentTime;
+    var base = 520 + Math.min(combo,12)*16;
+    tone(base, t, 0.09, "triangle", 0.16);
+    tone(base*1.5, t+0.05, 0.11, "triangle", 0.12);
+  }
+  function sfxMiss(){
+    ensureAudioCtx();
+    if(!audioCtx) return;
+    var t = audioCtx.currentTime;
+    tone(180, t, 0.18, "sawtooth", 0.13);
+    tone(130, t+0.08, 0.18, "sawtooth", 0.11);
+  }
+  function sfxComboMilestone(){
+    ensureAudioCtx();
+    if(!audioCtx) return;
+    var t = audioCtx.currentTime;
+    [660,880,1046.5].forEach(function(f,i){ tone(f, t+i*0.07, 0.15, "square", 0.14); });
+  }
+  function sfxComplete(){
+    ensureAudioCtx();
+    if(!audioCtx) return;
+    var t = audioCtx.currentTime;
+    [523.25,659.25,783.99,1046.5].forEach(function(f,i){ tone(f, t+i*0.09, 0.22, "triangle", 0.17); });
+  }
+  function sfxLevelUp(){
+    ensureAudioCtx();
+    if(!audioCtx) return;
+    var t = audioCtx.currentTime;
+    [392,523.25,659.25,783.99,1046.5,1318.5].forEach(function(f,i){ tone(f, t+i*0.08, 0.3, "square", 0.15); });
+  }
+
+  function syncSoundLabel(){
+    soundToggle.textContent = soundOn ? "♪ ON" : "♪ OFF";
+    soundToggle.classList.toggle("off", !soundOn);
+  }
+  syncSoundLabel();
+  soundToggle.addEventListener("click", function(){
+    soundOn = !soundOn;
+    try{ localStorage.setItem("masason_sound", soundOn ? "1" : "0"); }catch(e){}
+    syncSoundLabel();
+    if(soundOn){ ensureAudioCtx(); sfxClick(); }
+  });
+
+  sentTotal.textContent = SENTENCES.length;
+
+  function updateHud(){
+    scoreEl.textContent = state.score;
+    levelEl.textContent = state.currentLevel;
+    comboEl.textContent = state.combo;
+  }
+
+  function resetSlots(){
+    ROLES.forEach(function(r){
+      var s = slots[r];
+      s.classList.remove("filled");
+      s.textContent = ({S:"主語",V:"動詞",OC:"目的語/補語",M:"修飾語"})[r];
+    });
+    lanes.forEach(function(l){ l.classList.remove("active-target"); });
+  }
+
+  function startSentence(idx){
+    var sent = SENTENCES[idx];
+    state.currentLevel = levelForChunkCount(sent.chunks.length);
+    state.queue = shuffle(sent.chunks);
+    state.placed = {};
+    resetSlots();
+    sentNum.textContent = idx+1;
+    progLevel.textContent = state.currentLevel;
+    state.laneIndex = 1;
+    updateHud();
+    spawnNextChunk();
+  }
+
+  function spawnNextChunk(){
+    if(state.queue.length===0){
+      finishSentence();
+      return;
+    }
+    var chunk = state.queue[0];
+    fallingBlock.hidden = false;
+    fallingBlock.classList.remove("bad");
+    fallingBlock.textContent = chunk.t;
+    state.y = 0;
+    state.speed = 60 + state.currentLevel*22 + state.sentenceIndex*2;
+    positionBlock();
+    state.lastTs = null;
+    state.running = true;
+  }
+
+  function laneLeftPercent(i){ return i*25; }
+
+  function positionBlock(){
+    fallingBlock.style.left = laneLeftPercent(state.laneIndex) + "%";
+    fallingBlock.style.top = state.y + "px";
+  }
+
+  function moveLane(delta){
+    state.laneIndex = Math.max(0, Math.min(3, state.laneIndex+delta));
+    positionBlock();
+    sfxMoveTick();
+  }
+
+  function setLane(i){
+    state.laneIndex = i;
+    positionBlock();
+    sfxMoveTick();
+  }
+
+  function bottomY(){
+    return gameArea.clientHeight - state.blockH - 54;
+  }
+
+  function evaluateDrop(){
+    var chunk = state.queue[0];
+    var targetRole = ROLES[state.laneIndex];
+    if(targetRole === chunk.r){
+      state.queue.shift();
+      state.placed[chunk.r] = chunk.t;
+      state.combo += 1;
+      state.correct += 1;
+      state.attempts += 1;
+      var gained = Math.round(10 * (1 + state.combo*0.1));
+      state.score += gained;
+      fillSlot(chunk.r, chunk.t);
+      updateHud();
+      bumpCombo();
+      pulseLane(chunk.r);
+      sfxCatch(state.combo);
+      var slotRect = slots[chunk.r].getBoundingClientRect();
+      spawnConfetti(slotRect.left + slotRect.width/2, slotRect.top + slotRect.height/2, 10, [LANE_COLORS[chunk.r], "#f2c14e"]);
+      if(state.combo >= 2){
+        showComboPopup(state.combo);
+      }
+      if(state.combo > 0 && state.combo % 5 === 0){
+        sfxComboMilestone();
+        flashScreen("rgba(242,193,78,.4)");
+        spawnConfetti(window.innerWidth/2, window.innerHeight*0.3, 18, CONFETTI_PALETTE);
+      }
+      state.running = false;
+      fallingBlock.hidden = true;
+      setTimeout(spawnNextChunk, 180);
+    } else {
+      state.combo = 0;
+      state.attempts += 1;
+      state.score = Math.max(0, state.score - 3);
+      updateHud();
+      sfxMiss();
+      flashScreen("rgba(255,93,122,.3)");
+      fallingBlock.classList.add("bad");
+      setTimeout(function(){
+        fallingBlock.classList.remove("bad");
+        state.y = 0;
+        positionBlock();
+      }, 260);
+    }
+  }
+
+  function fillSlot(role, text){
+    var s = slots[role];
+    s.textContent = text;
+    s.classList.add("filled");
+  }
+
+  function finishSentence(){
+    state.running = false;
+    fallingBlock.hidden = true;
+    var sent = SENTENCES[state.sentenceIndex];
+    resultEn.textContent = sent.en;
+    resultJa.textContent = sent.ja;
+    resultTags.innerHTML = "";
+    var labelOf = {S:"S", V:"V", OC:"O・C", M:"M"};
+    var classOf = {S:"s", V:"v", OC:"oc", M:"m"};
+    sent.chunks.forEach(function(c){
+      var span = document.createElement("span");
+      span.className = "chip " + classOf[c.r];
+      span.textContent = labelOf[c.r] + " " + c.t;
+      resultTags.appendChild(span);
+    });
+    gameWrap.hidden = true;
+    sentenceClearEl.hidden = false;
+    sfxComplete();
+    flashScreen("rgba(242,193,78,.3)");
+    spawnConfetti(window.innerWidth/2, window.innerHeight*0.32, 26, CONFETTI_PALETTE);
+    bounceEl(completeTitle);
+  }
+
+  function goToNextSentence(){
+    sentenceClearEl.hidden = true;
+    var nextIdx = state.sentenceIndex + 1;
+    if(nextIdx >= SENTENCES.length){
+      showFinal();
+      return;
+    }
+    var nextLevel = levelForChunkCount(SENTENCES[nextIdx].chunks.length);
+    if(nextLevel !== state.currentLevel && !state.shownLevelIntro[nextLevel]){
+      state.shownLevelIntro[nextLevel] = true;
+      state.sentenceIndex = nextIdx;
+      var info = LEVEL_INTRO[nextLevel];
+      levelClearTitle.textContent = info.title;
+      levelClearText.textContent = info.text;
+      levelClearEl.hidden = false;
+      sfxLevelUp();
+      flashScreen("rgba(242,193,78,.55)");
+      spawnConfetti(window.innerWidth*0.25, 40, 24, CONFETTI_PALETTE);
+      spawnConfetti(window.innerWidth*0.75, 40, 24, CONFETTI_PALETTE);
+      setTimeout(function(){ spawnConfetti(window.innerWidth/2, window.innerHeight*0.25, 22, CONFETTI_PALETTE); }, 180);
+      bounceEl(levelClearTitle);
+      return;
+    }
+    state.sentenceIndex = nextIdx;
+    gameWrap.hidden = false;
+    startSentence(state.sentenceIndex);
+  }
+
+  function showFinal(){
+    finalTotal.textContent = SENTENCES.length;
+    finalScore.textContent = state.score;
+    var acc = state.attempts ? Math.round(100*state.correct/state.attempts) : 100;
+    finalAccuracy.textContent = acc + "%";
+    finalEl.hidden = false;
+    sfxLevelUp();
+    flashScreen("rgba(242,193,78,.6)");
+    spawnConfetti(window.innerWidth*0.2, 30, 24, CONFETTI_PALETTE);
+    spawnConfetti(window.innerWidth*0.8, 30, 24, CONFETTI_PALETTE);
+    setTimeout(function(){ spawnConfetti(window.innerWidth/2, window.innerHeight*0.25, 30, CONFETTI_PALETTE); }, 200);
+    bounceEl(allClearTitle);
+  }
+
+  function resetGame(){
+    state.sentenceIndex = 0;
+    state.score = 0;
+    state.combo = 0;
+    state.attempts = 0;
+    state.correct = 0;
+    state.shownLevelIntro = {1:true};
+    updateHud();
+  }
+
+  // ---- loop ----
+  function loop(ts){
+    if(state.running){
+      if(state.lastTs === null) state.lastTs = ts;
+      var dt = (ts - state.lastTs) / 1000;
+      state.lastTs = ts;
+      state.y += state.speed * dt;
+      var limit = bottomY();
+      if(state.y >= limit){
+        state.y = limit;
+        positionBlock();
+        evaluateDrop();
+      } else {
+        positionBlock();
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ---- input ----
+  document.addEventListener("keydown", function(e){
+    if(gameWrap.hidden) return;
+    if(e.key === "ArrowLeft"){ moveLane(-1); e.preventDefault(); }
+    else if(e.key === "ArrowRight"){ moveLane(1); e.preventDefault(); }
+  });
+  btnLeft.addEventListener("click", function(){ moveLane(-1); });
+  btnRight.addEventListener("click", function(){ moveLane(1); });
+  lanes.forEach(function(lane, i){
+    lane.addEventListener("click", function(){ setLane(i); });
+  });
+
+  // ---- screen flow ----
+  startBtn.addEventListener("click", function(){
+    ensureAudioCtx();
+    sfxClick();
+    introEl.hidden = true;
+    gameWrap.hidden = false;
+    resetGame();
+    startSentence(0);
+  });
+  nextBtn.addEventListener("click", function(){
+    sfxClick();
+    goToNextSentence();
+  });
+  levelNextBtn.addEventListener("click", function(){
+    sfxClick();
+    levelClearEl.hidden = true;
+    gameWrap.hidden = false;
+    startSentence(state.sentenceIndex);
+  });
+  restartBtn.addEventListener("click", function(){
+    sfxClick();
+    finalEl.hidden = true;
+    gameWrap.hidden = false;
+    resetGame();
+    startSentence(0);
+  });
+
+  // ---- hot reload state (artifact viewers keep progress across republish) ----
+  if(window.claude && window.claude.hot){
+    window.claude.hot.snapshot(function(){
+      return {score:state.score, combo:state.combo};
+    });
+  }
+})();
+</script>
+</body>
+</html>
