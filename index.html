@@ -260,26 +260,40 @@
 
   .controls{
     display:flex;
+    flex-direction:column;
     align-items:center;
-    justify-content:center;
-    gap:14px;
+    gap:10px;
   }
-  .controls button{
-    width:56px;
-    height:56px;
+  .dpad{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .dpad-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .dpad-btn{
+    width:64px;
+    height:64px;
     border-radius:50%;
     border:1px solid var(--surface-2);
     background:var(--surface);
     color:var(--gold);
-    font-size:20px;
+    font-size:24px;
+    line-height:1;
     cursor:pointer;
+    flex:none;
+    -webkit-tap-highlight-color:transparent;
   }
-  .controls button:active{background:var(--surface-2);}
+  .dpad-btn:active{background:var(--surface-2); transform:scale(.95);}
   .controls .hint{
-    font-size:11px;
+    font-size:13px;
     color:var(--muted);
     text-align:center;
-    max-width:180px;
+    max-width:280px;
   }
 
   /* ---- fx: combo / level-up ---- */
@@ -379,9 +393,16 @@
   [hidden]{display:none!important;}
 
   @media (max-width:420px){
-    .lane-head{font-size:9.5px;}
-    .lane-slot{font-size:9.5px; min-height:40px;}
-    .chunk-block{font-size:10.5px;}
+    .lane-head{font-size:12px;}
+    .lane-slot{font-size:12px; min-height:48px;}
+    .chunk-block{font-size:14px;}
+    .dpad-btn{
+      width:78px;
+      height:78px;
+      font-size:32px;
+    }
+    .dpad-row{ gap:16px; }
+    .controls .hint{ font-size:13.5px; max-width:300px; }
   }
 </style>
 </head>
@@ -396,7 +417,7 @@
       <span>LV<b id="level" class="mono">1</b></span>
       <span>COMBO<b id="combo" class="mono">0</b></span>
     </div>
-    <button id="soundToggle" class="sound-toggle" type="button">♪ ON</button>
+    <button id="soundToggle" class="sound-toggle off" type="button">♪ OFF</button>
   </header>
 
   <div id="intro" class="overlay">
@@ -407,7 +428,7 @@
     <div class="rule-row"><span class="chip v">V</span>動詞 — どうする / どうだ</div>
     <div class="rule-row"><span class="chip oc">O・C</span>目的語 or 補語 — 何を / 何だ</div>
     <div class="rule-row"><span class="chip m">M</span>修飾語 — 場所・時・理由など後付け</div>
-    <p class="sub">左右キー（または下のボタン・タップ）でレーンを選び、正しい位置に落とすだけ。間違えても減点だけなので気楽にどうぞ。</p>
+    <p class="sub">← →（または下のボタン）でレーンを選び、↓で即座に落とせます。間違えても減点だけなので気楽にどうぞ。文が完成したら ↑ で次に進めます。</p>
     <button class="btn" id="startBtn">スタート ▶</button>
   </div>
 
@@ -448,9 +469,15 @@
       <div id="fallingBlock" class="chunk-block" hidden></div>
     </div>
     <div class="controls">
-      <button id="btnLeft" aria-label="左へ">◀</button>
-      <div class="hint">←→キー・ボタン・タップでレーン移動</div>
-      <button id="btnRight" aria-label="右へ">▶</button>
+      <div class="dpad">
+        <button id="btnUp" class="dpad-btn dpad-up" aria-label="次へ進む">▲</button>
+        <div class="dpad-row">
+          <button id="btnLeft" class="dpad-btn" aria-label="左のレーンへ">◀</button>
+          <button id="btnDown" class="dpad-btn" aria-label="即座に落とす">▼</button>
+          <button id="btnRight" class="dpad-btn" aria-label="右のレーンへ">▶</button>
+        </div>
+      </div>
+      <div class="hint">↑ 次へ ／ ↓ 即落下 ／ ←→ レーン移動</div>
     </div>
   </main>
 
@@ -544,7 +571,7 @@
   var finalEl=$("finalScreen"), finalTotal=$("finalTotal"), finalScore=$("finalScore"), finalAccuracy=$("finalAccuracy"), restartBtn=$("restartBtn");
   var gameWrap=$("gameWrap"), gameArea=$("gameArea"), fallingBlock=$("fallingBlock");
   var sentNum=$("sentNum"), sentTotal=$("sentTotal"), progLevel=$("progLevel");
-  var btnLeft=$("btnLeft"), btnRight=$("btnRight");
+  var btnLeft=$("btnLeft"), btnRight=$("btnRight"), btnUp=$("btnUp"), btnDown=$("btnDown");
   var lanes = Array.prototype.slice.call(document.querySelectorAll(".lane"));
   var slots = {};
   ROLES.forEach(function(r){ slots[r] = document.querySelector('.lane-slot[data-slot="'+r+'"]'); });
@@ -619,7 +646,7 @@
 
   // ---- sound (synthesized with Web Audio API, no external assets) ----
   var audioCtx = null;
-  var soundOn = true;
+  var soundOn = false;
   try{
     var savedSound = localStorage.getItem("masason_sound");
     if(savedSound !== null) soundOn = savedSound === "1";
@@ -931,10 +958,7 @@
   document.addEventListener("keydown", function(e){
     if(e.key === "ArrowUp"){
       e.preventDefault();
-      if(!sentenceClearEl.hidden) doNext();
-      else if(!levelClearEl.hidden) doLevelNext();
-      else if(!finalEl.hidden) doRestart();
-      else if(!introEl.hidden) doStart();
+      triggerContinue();
       return;
     }
     if(gameWrap.hidden) return;
@@ -944,6 +968,8 @@
   });
   btnLeft.addEventListener("click", function(){ moveLane(-1); });
   btnRight.addEventListener("click", function(){ moveLane(1); });
+  btnDown.addEventListener("click", function(){ hardDrop(); });
+  btnUp.addEventListener("click", function(){ triggerContinue(); });
   lanes.forEach(function(lane, i){
     lane.addEventListener("click", function(){ setLane(i); });
   });
@@ -973,6 +999,12 @@
     gameWrap.hidden = false;
     resetGame();
     startSentence(0);
+  }
+  function triggerContinue(){
+    if(!sentenceClearEl.hidden) doNext();
+    else if(!levelClearEl.hidden) doLevelNext();
+    else if(!finalEl.hidden) doRestart();
+    else if(!introEl.hidden) doStart();
   }
   startBtn.addEventListener("click", doStart);
   nextBtn.addEventListener("click", doNext);
