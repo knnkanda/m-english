@@ -770,6 +770,13 @@
     sfxMoveTick();
   }
 
+  function hardDrop(){
+    if(!state.running) return;
+    state.y = bottomY();
+    positionBlock();
+    evaluateDrop();
+  }
+
   function bottomY(){
     return gameArea.clientHeight - state.blockH - 54;
   }
@@ -922,9 +929,18 @@
 
   // ---- input ----
   document.addEventListener("keydown", function(e){
+    if(e.key === "ArrowUp"){
+      e.preventDefault();
+      if(!sentenceClearEl.hidden) doNext();
+      else if(!levelClearEl.hidden) doLevelNext();
+      else if(!finalEl.hidden) doRestart();
+      else if(!introEl.hidden) doStart();
+      return;
+    }
     if(gameWrap.hidden) return;
     if(e.key === "ArrowLeft"){ moveLane(-1); e.preventDefault(); }
     else if(e.key === "ArrowRight"){ moveLane(1); e.preventDefault(); }
+    else if(e.key === "ArrowDown"){ hardDrop(); e.preventDefault(); }
   });
   btnLeft.addEventListener("click", function(){ moveLane(-1); });
   btnRight.addEventListener("click", function(){ moveLane(1); });
@@ -933,31 +949,35 @@
   });
 
   // ---- screen flow ----
-  startBtn.addEventListener("click", function(){
+  function doStart(){
     ensureAudioCtx();
     sfxClick();
     introEl.hidden = true;
     gameWrap.hidden = false;
     resetGame();
     startSentence(0);
-  });
-  nextBtn.addEventListener("click", function(){
+  }
+  function doNext(){
     sfxClick();
     goToNextSentence();
-  });
-  levelNextBtn.addEventListener("click", function(){
+  }
+  function doLevelNext(){
     sfxClick();
     levelClearEl.hidden = true;
     gameWrap.hidden = false;
     startSentence(state.sentenceIndex);
-  });
-  restartBtn.addEventListener("click", function(){
+  }
+  function doRestart(){
     sfxClick();
     finalEl.hidden = true;
     gameWrap.hidden = false;
     resetGame();
     startSentence(0);
-  });
+  }
+  startBtn.addEventListener("click", doStart);
+  nextBtn.addEventListener("click", doNext);
+  levelNextBtn.addEventListener("click", doLevelNext);
+  restartBtn.addEventListener("click", doRestart);
 
   // ---- hot reload state (artifact viewers keep progress across republish) ----
   if(window.claude && window.claude.hot){
