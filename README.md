@@ -1,5 +1,7 @@
 # M English（マサソンイングリッシュ）
 
+🎮 **プレイはこちら: [m-english-psi.vercel.app](https://m-english-psi.vercel.app)**
+
 ビジネス英語の **S（主語）→ V（動詞）→ O・C（目的語・補語）→ M（修飾語）** という語順を、テトリス風に落ちてくる単語ブロックを正しいレーンでキャッチしながら体に覚えさせるブラウザゲームです。
 
 外部ライブラリなしの素の HTML / CSS / JavaScript のみで動作し、効果音も Web Audio API でその場で合成しています。
@@ -45,7 +47,7 @@ python3 -m http.server 8080
 
 ## デプロイ
 
-Vercel で公開しています。
+Vercel で公開しています: https://m-english-psi.vercel.app
 
 ## ライセンス
 
