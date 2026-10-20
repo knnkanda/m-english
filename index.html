@@ -495,49 +495,12 @@
 
 </div>
 
+<script src="sentences.js"></script>
 <script>
 (function(){
   "use strict";
 
   var ROLES = ["S","V","OC","M"];
-
-  var SENTENCES = [
-    // Level 1: S + V
-    {en:"AI is accelerating.", ja:"AIは加速している。", chunks:[{t:"AI",r:"S"},{t:"is accelerating",r:"V"}]},
-    {en:"The market is growing.", ja:"市場は成長している。", chunks:[{t:"The market",r:"S"},{t:"is growing",r:"V"}]},
-    {en:"Robots are learning.", ja:"ロボットは学習している。", chunks:[{t:"Robots",r:"S"},{t:"are learning",r:"V"}]},
-    {en:"Our team is moving.", ja:"私たちのチームは動いている。", chunks:[{t:"Our team",r:"S"},{t:"is moving",r:"V"}]},
-    {en:"The paradigm is shifting.", ja:"パラダイムが変化している。", chunks:[{t:"The paradigm",r:"S"},{t:"is shifting",r:"V"}]},
-    {en:"Everything is connected.", ja:"すべてがつながっている。", chunks:[{t:"Everything",r:"S"},{t:"is connected",r:"V"}]},
-    {en:"The singularity is approaching.", ja:"シンギュラリティが近づいている。", chunks:[{t:"The singularity",r:"S"},{t:"is approaching",r:"V"}]},
-    {en:"The revolution has begun.", ja:"革命は始まった。", chunks:[{t:"The revolution",r:"S"},{t:"has begun",r:"V"}]},
-    // Level 2: S + V + O/C
-    {en:"I have a dream.", ja:"私には夢がある。", chunks:[{t:"I",r:"S"},{t:"have",r:"V"},{t:"a dream",r:"OC"}]},
-    {en:"We need innovation.", ja:"私たちには革新が必要だ。", chunks:[{t:"We",r:"S"},{t:"need",r:"V"},{t:"innovation",r:"OC"}]},
-    {en:"AI will change everything.", ja:"AIはすべてを変えるだろう。", chunks:[{t:"AI",r:"S"},{t:"will change",r:"V"},{t:"everything",r:"OC"}]},
-    {en:"This is our strategy.", ja:"これが私たちの戦略だ。", chunks:[{t:"This",r:"S"},{t:"is",r:"V"},{t:"our strategy",r:"OC"}]},
-    {en:"The future belongs to AI.", ja:"未来はAIのものだ。", chunks:[{t:"The future",r:"S"},{t:"belongs",r:"V"},{t:"to AI",r:"OC"}]},
-    {en:"Results are proportionate to dreams.", ja:"結果は夢の大きさに比例する。", chunks:[{t:"Results",r:"S"},{t:"are",r:"V"},{t:"proportionate to dreams",r:"OC"}]},
-    {en:"We build the future.", ja:"私たちは未来を築く。", chunks:[{t:"We",r:"S"},{t:"build",r:"V"},{t:"the future",r:"OC"}]},
-    {en:"Information changes everything.", ja:"情報がすべてを変える。", chunks:[{t:"Information",r:"S"},{t:"changes",r:"V"},{t:"everything",r:"OC"}]},
-    {en:"Speed is our strategy.", ja:"スピードが私たちの戦略だ。", chunks:[{t:"Speed",r:"S"},{t:"is",r:"V"},{t:"our strategy",r:"OC"}]},
-    {en:"I trust my instinct.", ja:"私は自分の直感を信じる。", chunks:[{t:"I",r:"S"},{t:"trust",r:"V"},{t:"my instinct",r:"OC"}]},
-    {en:"We chase big dreams.", ja:"私たちは大きな夢を追いかける。", chunks:[{t:"We",r:"S"},{t:"chase",r:"V"},{t:"big dreams",r:"OC"}]},
-    {en:"AI will surpass humans.", ja:"AIは人間を超えるだろう。", chunks:[{t:"AI",r:"S"},{t:"will surpass",r:"V"},{t:"humans",r:"OC"}]},
-    {en:"Our mission is clear.", ja:"私たちの使命は明確だ。", chunks:[{t:"Our mission",r:"S"},{t:"is",r:"V"},{t:"clear",r:"OC"}]},
-    {en:"We need bold decisions.", ja:"私たちには大胆な決断が必要だ。", chunks:[{t:"We",r:"S"},{t:"need",r:"V"},{t:"bold decisions",r:"OC"}]},
-    // Level 3: S + V + O/C + M
-    {en:"We have robotics companies in our portfolio.", ja:"私たちはポートフォリオにロボット企業を持っている。", chunks:[{t:"We",r:"S"},{t:"have",r:"V"},{t:"robotics companies",r:"OC"},{t:"in our portfolio",r:"M"}]},
-    {en:"AI will create new jobs in every industry.", ja:"AIはあらゆる産業で新しい仕事を生み出すだろう。", chunks:[{t:"AI",r:"S"},{t:"will create",r:"V"},{t:"new jobs",r:"OC"},{t:"in every industry",r:"M"}]},
-    {en:"I started this company thirty years ago.", ja:"私はこの会社を30年前に始めた。", chunks:[{t:"I",r:"S"},{t:"started",r:"V"},{t:"this company",r:"OC"},{t:"thirty years ago",r:"M"}]},
-    {en:"We are building a platform for everyone.", ja:"私たちはみんなのためのプラットフォームを作っている。", chunks:[{t:"We",r:"S"},{t:"are building",r:"V"},{t:"a platform",r:"OC"},{t:"for everyone",r:"M"}]},
-    {en:"I started SoftBank with one idea.", ja:"私はたった一つのアイデアでソフトバンクを始めた。", chunks:[{t:"I",r:"S"},{t:"started",r:"V"},{t:"SoftBank",r:"OC"},{t:"with one idea",r:"M"}]},
-    {en:"We are creating value for society.", ja:"私たちは社会のために価値を生み出している。", chunks:[{t:"We",r:"S"},{t:"are creating",r:"V"},{t:"value",r:"OC"},{t:"for society",r:"M"}]},
-    {en:"AI will transform every business in the world.", ja:"AIは世界中のあらゆるビジネスを変革するだろう。", chunks:[{t:"AI",r:"S"},{t:"will transform",r:"V"},{t:"every business",r:"OC"},{t:"in the world",r:"M"}]},
-    {en:"I made this decision in a single night.", ja:"私はその決断を一晩で下した。", chunks:[{t:"I",r:"S"},{t:"made",r:"V"},{t:"this decision",r:"OC"},{t:"in a single night",r:"M"}]},
-    {en:"Our fund supports founders around the world.", ja:"私たちのファンドは世界中の起業家を支援する。", chunks:[{t:"Our fund",r:"S"},{t:"supports",r:"V"},{t:"founders",r:"OC"},{t:"around the world",r:"M"}]},
-    {en:"I see opportunity in every crisis.", ja:"私はあらゆる危機にチャンスを見出す。", chunks:[{t:"I",r:"S"},{t:"see",r:"V"},{t:"opportunity",r:"OC"},{t:"in every crisis",r:"M"}]}
-  ];
 
   var LEVEL_INTRO = {
     1:{title:"LEVEL 1 — S + V", text:"まずは骨組みだけ。「誰が」「どうする」の2語でも文は完成します。S(青)→V(赤)の順にキャッチしましょう。"},
