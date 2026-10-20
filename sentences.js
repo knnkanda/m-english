@@ -5,77 +5,17 @@
 // style, extended into business, finance, marketing, economics and presentation
 // vocabulary. Not transcriptions of any speech.
 var SENTENCES = [
-  // ===== LEVEL 1: S + V (60) =====
-  // AI & Technology
+  // ===== LEVEL 1: S + V (10, one per theme) =====
   {en:"AI is advancing.", ja:"AIは進化している。", chunks:[{t:"AI",r:"S"},{t:"is advancing",r:"V"}]},
-  {en:"Automation is spreading.", ja:"自動化が広がっている。", chunks:[{t:"Automation",r:"S"},{t:"is spreading",r:"V"}]},
-  {en:"The algorithm is learning.", ja:"アルゴリズムは学習している。", chunks:[{t:"The algorithm",r:"S"},{t:"is learning",r:"V"}]},
-  {en:"Our platform is scaling.", ja:"私たちのプラットフォームは拡大している。", chunks:[{t:"Our platform",r:"S"},{t:"is scaling",r:"V"}]},
-  {en:"The technology has matured.", ja:"その技術は成熟した。", chunks:[{t:"The technology",r:"S"},{t:"has matured",r:"V"}]},
-  {en:"Cloud computing is expanding.", ja:"クラウドコンピューティングは拡大している。", chunks:[{t:"Cloud computing",r:"S"},{t:"is expanding",r:"V"}]},
-  // Leadership & Vision
   {en:"Our vision is expanding.", ja:"私たちのビジョンは広がっている。", chunks:[{t:"Our vision",r:"S"},{t:"is expanding",r:"V"}]},
-  {en:"The team is growing.", ja:"チームは成長している。", chunks:[{t:"The team",r:"S"},{t:"is growing",r:"V"}]},
-  {en:"Leadership matters.", ja:"リーダーシップは重要だ。", chunks:[{t:"Leadership",r:"S"},{t:"matters",r:"V"}]},
-  {en:"Our culture is evolving.", ja:"私たちの文化は進化している。", chunks:[{t:"Our culture",r:"S"},{t:"is evolving",r:"V"}]},
-  {en:"The founders persisted.", ja:"創業者たちは粘り強く続けた。", chunks:[{t:"The founders",r:"S"},{t:"persisted",r:"V"}]},
-  {en:"Our mission has evolved.", ja:"私たちの使命は進化した。", chunks:[{t:"Our mission",r:"S"},{t:"has evolved",r:"V"}]},
-  // Finance & Investment
   {en:"The stock price is rising.", ja:"株価は上昇している。", chunks:[{t:"The stock price",r:"S"},{t:"is rising",r:"V"}]},
-  {en:"Our revenue is growing.", ja:"私たちの収益は成長している。", chunks:[{t:"Our revenue",r:"S"},{t:"is growing",r:"V"}]},
-  {en:"Cash flow has stabilized.", ja:"キャッシュフローは安定した。", chunks:[{t:"Cash flow",r:"S"},{t:"has stabilized",r:"V"}]},
-  {en:"The valuation is climbing.", ja:"評価額は上昇している。", chunks:[{t:"The valuation",r:"S"},{t:"is climbing",r:"V"}]},
-  {en:"Our margins are improving.", ja:"私たちの利益率は改善している。", chunks:[{t:"Our margins",r:"S"},{t:"are improving",r:"V"}]},
-  {en:"The fund is expanding.", ja:"ファンドは拡大している。", chunks:[{t:"The fund",r:"S"},{t:"is expanding",r:"V"}]},
-  // Marketing & Branding
   {en:"Our brand is growing.", ja:"私たちのブランドは成長している。", chunks:[{t:"Our brand",r:"S"},{t:"is growing",r:"V"}]},
-  {en:"The campaign is trending.", ja:"そのキャンペーンは話題になっている。", chunks:[{t:"The campaign",r:"S"},{t:"is trending",r:"V"}]},
-  {en:"Customer loyalty is rising.", ja:"顧客ロイヤルティは高まっている。", chunks:[{t:"Customer loyalty",r:"S"},{t:"is rising",r:"V"}]},
-  {en:"Demand is increasing.", ja:"需要は増加している。", chunks:[{t:"Demand",r:"S"},{t:"is increasing",r:"V"}]},
-  {en:"Engagement is climbing.", ja:"エンゲージメントは上昇している。", chunks:[{t:"Engagement",r:"S"},{t:"is climbing",r:"V"}]},
-  {en:"Our audience is expanding.", ja:"私たちの視聴者層は拡大している。", chunks:[{t:"Our audience",r:"S"},{t:"is expanding",r:"V"}]},
-  // Economics & Markets
   {en:"The economy is recovering.", ja:"経済は回復している。", chunks:[{t:"The economy",r:"S"},{t:"is recovering",r:"V"}]},
-  {en:"Inflation is rising.", ja:"インフレは上昇している。", chunks:[{t:"Inflation",r:"S"},{t:"is rising",r:"V"}]},
-  {en:"Unemployment is falling.", ja:"失業率は低下している。", chunks:[{t:"Unemployment",r:"S"},{t:"is falling",r:"V"}]},
-  {en:"GDP is growing.", ja:"GDPは成長している。", chunks:[{t:"GDP",r:"S"},{t:"is growing",r:"V"}]},
-  {en:"The market is fluctuating.", ja:"市場は変動している。", chunks:[{t:"The market",r:"S"},{t:"is fluctuating",r:"V"}]},
-  {en:"Consumer confidence is improving.", ja:"消費者信頼感は改善している。", chunks:[{t:"Consumer confidence",r:"S"},{t:"is improving",r:"V"}]},
-  // Presentations & Communication
   {en:"The presentation is starting.", ja:"プレゼンテーションが始まる。", chunks:[{t:"The presentation",r:"S"},{t:"is starting",r:"V"}]},
-  {en:"The audience is listening.", ja:"聴衆は耳を傾けている。", chunks:[{t:"The audience",r:"S"},{t:"is listening",r:"V"}]},
-  {en:"The message is resonating.", ja:"そのメッセージは響いている。", chunks:[{t:"The message",r:"S"},{t:"is resonating",r:"V"}]},
-  {en:"Our pitch has improved.", ja:"私たちのピッチは改善した。", chunks:[{t:"Our pitch",r:"S"},{t:"has improved",r:"V"}]},
-  {en:"The Q&A is continuing.", ja:"質疑応答は続いている。", chunks:[{t:"The Q&A",r:"S"},{t:"is continuing",r:"V"}]},
-  {en:"Communication is evolving.", ja:"コミュニケーションは進化している。", chunks:[{t:"Communication",r:"S"},{t:"is evolving",r:"V"}]},
-  // Management & Strategy
   {en:"Productivity is rising.", ja:"生産性は向上している。", chunks:[{t:"Productivity",r:"S"},{t:"is rising",r:"V"}]},
-  {en:"Our strategy is working.", ja:"私たちの戦略は機能している。", chunks:[{t:"Our strategy",r:"S"},{t:"is working",r:"V"}]},
-  {en:"The process has improved.", ja:"そのプロセスは改善した。", chunks:[{t:"The process",r:"S"},{t:"has improved",r:"V"}]},
-  {en:"Our workflow is changing.", ja:"私たちのワークフローは変化している。", chunks:[{t:"Our workflow",r:"S"},{t:"is changing",r:"V"}]},
-  {en:"Efficiency is increasing.", ja:"効率性は向上している。", chunks:[{t:"Efficiency",r:"S"},{t:"is increasing",r:"V"}]},
-  {en:"The organization is restructuring.", ja:"その組織は再編している。", chunks:[{t:"The organization",r:"S"},{t:"is restructuring",r:"V"}]},
-  // Negotiation & Deals
   {en:"The negotiation is continuing.", ja:"交渉は続いている。", chunks:[{t:"The negotiation",r:"S"},{t:"is continuing",r:"V"}]},
-  {en:"The deal is closing.", ja:"その取引はまとまりつつある。", chunks:[{t:"The deal",r:"S"},{t:"is closing",r:"V"}]},
-  {en:"The merger has completed.", ja:"その合併は完了した。", chunks:[{t:"The merger",r:"S"},{t:"has completed",r:"V"}]},
-  {en:"Talks are progressing.", ja:"協議は進展している。", chunks:[{t:"Talks",r:"S"},{t:"are progressing",r:"V"}]},
-  {en:"The partnership is strengthening.", ja:"そのパートナーシップは強化されている。", chunks:[{t:"The partnership",r:"S"},{t:"is strengthening",r:"V"}]},
-  {en:"The offer is improving.", ja:"その提案は改善している。", chunks:[{t:"The offer",r:"S"},{t:"is improving",r:"V"}]},
-  // Globalization & Supply Chain
   {en:"Globalization is accelerating.", ja:"グローバル化は加速している。", chunks:[{t:"Globalization",r:"S"},{t:"is accelerating",r:"V"}]},
-  {en:"The supply chain is recovering.", ja:"サプライチェーンは回復している。", chunks:[{t:"The supply chain",r:"S"},{t:"is recovering",r:"V"}]},
-  {en:"Trade is expanding.", ja:"貿易は拡大している。", chunks:[{t:"Trade",r:"S"},{t:"is expanding",r:"V"}]},
-  {en:"Our operations are scaling.", ja:"私たちの事業は拡大している。", chunks:[{t:"Our operations",r:"S"},{t:"are scaling",r:"V"}]},
-  {en:"Exports are increasing.", ja:"輸出は増加している。", chunks:[{t:"Exports",r:"S"},{t:"are increasing",r:"V"}]},
-  {en:"The region is developing.", ja:"その地域は発展している。", chunks:[{t:"The region",r:"S"},{t:"is developing",r:"V"}]},
-  // Startups & Growth
   {en:"Our startup is scaling.", ja:"私たちのスタートアップは成長している。", chunks:[{t:"Our startup",r:"S"},{t:"is scaling",r:"V"}]},
-  {en:"The runway is shrinking.", ja:"残りの資金期間は短くなっている。", chunks:[{t:"The runway",r:"S"},{t:"is shrinking",r:"V"}]},
-  {en:"User growth is accelerating.", ja:"ユーザー数の成長は加速している。", chunks:[{t:"User growth",r:"S"},{t:"is accelerating",r:"V"}]},
-  {en:"Our pipeline is filling.", ja:"私たちのパイプラインは埋まりつつある。", chunks:[{t:"Our pipeline",r:"S"},{t:"is filling",r:"V"}]},
-  {en:"The product is improving.", ja:"製品は改善している。", chunks:[{t:"The product",r:"S"},{t:"is improving",r:"V"}]},
-  {en:"Our churn is decreasing.", ja:"私たちの解約率は減少している。", chunks:[{t:"Our churn",r:"S"},{t:"is decreasing",r:"V"}]},
 
   // ===== LEVEL 2: S + V + O/C (150) =====
   // AI & Technology
